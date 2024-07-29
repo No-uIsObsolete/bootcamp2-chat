@@ -30,7 +30,7 @@ export default {
     <br />
     <br />
     <div>
-      {{ newNote }}
+      {{ notes }}
     </div>
     <div>
       <textarea v-model="newNote"></textarea> <button @click="dodajNotatke">Dodaj notatke</button>
