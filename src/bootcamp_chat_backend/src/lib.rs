@@ -10,6 +10,8 @@ thread_local! {
 
 #[ic_cdk::query]
 fn get_chat(user1: Principal, user2: Principal) -> Option<Vec<String>> {
+    let mut principals  = [user1, user2];
+    principals.sort();
     CHAT.with_borrow(|chats| chats.get(&[user1, user2]).cloned())
 }
 
