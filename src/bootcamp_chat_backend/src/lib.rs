@@ -2,10 +2,34 @@ use std::{cell::RefCell, collections::HashMap};
 
 use candid::Principal;
 use ic_cdk::caller;
+use user::UserData;
+
+pub mod user;
 
 thread_local! {
-    static NOTES: RefCell<HashMap<Principal, Vec<String>>> = RefCell::default();
     static CHAT: RefCell<HashMap<[Principal; 2], Vec<String>>> = RefCell::default();
+    static USERS: RefCell<HashMap<Principal, UserData>> = RefCell::default();
+}
+
+#[ic_cdk::update]
+fn register(nick: String) {
+    let user: Principal = caller();
+
+    if user == Principal::anonymous() {
+        panic!("Anonymous Principal!")
+    }
+
+    USERS.with_borrow_mut(|users| users.insert(user, UserData::new(nick)));
+}
+
+#[ic_cdk::query]
+fn get_users() -> HashMap<candid::Principal, UserData> {
+    USERS.with_borrow(|users| users.clone())
+}
+
+#[ic_cdk::query]
+fn get_user(user: Principal) -> Option<UserData> {
+    USERS.with_borrow(|users| users.get(&user).cloned())
 }
 
 #[ic_cdk::query]
@@ -21,16 +45,21 @@ fn add_chat_msg(msg: String, user2: Principal) {
         panic!("Anonymous Principal!")
     }
 
-    let mut principals  = [user1, user2];
+    let is_user_registered = USERS.with_borrow(|users| users.contains_key(&user1));
+
+    if !is_user_registered {
+        panic!("Not registered!")
+    }
+
+    let mut principals = [user1, user2];
     principals.sort();
-    
-    CHAT.with_borrow_mut(|chats|{
+
+    CHAT.with_borrow_mut(|chats| {
         let mut_chat = chats.get_mut(&principals);
 
-        if let Some(chats_msgs) = mut_chat{
+        if let Some(chats_msgs) = mut_chat {
             chats_msgs.push(msg)
-        }
-        else{
+        } else {
             chats.insert(principals, vec![msg]);
         }
     })
